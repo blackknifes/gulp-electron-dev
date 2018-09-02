@@ -1,10 +1,21 @@
 {
   "name": "gulp-electron-dev",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "electron dev for gulp",
   "main": "./app/main.js",
   "scripts": {
-    "test": "gulp"
+    "test": "node gulpfile.js"
+  },
+  "author": {
+    "name": "blackknifes",
+    "email": "a1991815a@gmail.com"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/blackknifes/gulp-electron-dev.git",
+  "homepage": "https://github.com/blackknifes/gulp-electron-dev",
+  "bugs": {
+    "url": "https://github.com/blackknifes/gulp-electron-dev/issues",
+    "email": "a1991815a@gmail.com"
   },
   "keywords": [
     "gulp",
@@ -19,8 +30,6 @@
     "min",
     "minifier"
   ],
-  "author": "blackknifes",
-  "license": "MIT",
   "dependencies": {
     "app-root-path": "^2.1.0",
     "browserify": "^16.2.2",
