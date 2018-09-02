@@ -3,7 +3,6 @@ const watchify = require("watchify");
 const tsify = require("tsify");
 const gulp = require('gulp');
 const source = require('vinyl-source-stream');
-const buffer = require('vinyl-buffer');
 const gutil = require("gulp-util");
 const combiner = require('stream-combiner2');
 const inlinesource = require("gulp-inline-source");
@@ -13,6 +12,7 @@ const path = require("path");
 const uglifyify = require("uglifyify");
 const electron = require("./electronServer");
 const tsConfig = require("./tsconfig");
+const through = require('through2');
 
 //excludeModules
 const excludeModules = [
@@ -45,84 +45,91 @@ const excludeModules = [
  * @param { string } [options.externalRequireName]
  * @returns { Stream }
  */
-function buildMain(options)
-{
-    if(!options)
+function buildMain(options) {
+    if (!options)
         options = {};
     //init options
     let opt = buildOptions(options);
 
     //init entries
-    if(!opt.entries)
+    if (!opt.entries)
         opt.entries = "./src/main/index.ts";
-    if(opt.entries instanceof Array)
-    {
-        for(let i = 0; i < opt.entries.length; ++i)
+    if (opt.entries instanceof Array) {
+        for (let i = 0; i < opt.entries.length; ++i)
             opt.entries[i] = path.normalize(opt.entries[i]);
     }
     else
         opt.entries = path.normalize(opt.entries);
 
-    if(opt.debug && typeof opt.entries == "string")
-    {
+    if (opt.debug && typeof opt.entries == "string") {
         let ext = path.extname(opt.entries);
         let name = path.basename(opt.entries, ext);
         opt.entries = path.resolve(path.dirname(opt.entries), name + ".debug" + ext);
     }
-    //browserify construct
-    let bundle = browserify(opt).plugin("tsify", tsConfig);
 
-    //watchify
-    if(options.watch)
-    {
-        bundle = bundle.plugin("watchify",  {
-            delay: 100,
-            poll: false
-        });
-    }
-    
-    //minify
-    if(options.minify)
-        bundle = bundle.plugin("uglifyify", { sourceMap: options.sourceMap });
+    return through.obj((file, enc, callback) => {
 
-    //exclude fs and electron modules
-    bundle = bundle.exclude(excludeModules)
-    .on("log", (message)=>{
-        console.log(message);
-    });
+        if(!file.isNull())
+            return callback(null, file);
 
-    //build chain
-    let build = (cb)=>{
-        bundle.bundle((err, src)=>{
-            if(err)
-                console.error(err);
-        })
-        .pipe(source("main.js"))
-        .pipe(buffer())
-        .pipe(gulp.dest('./dist/app').once("end", ()=>{
-            console.log("build done.".green);
-            if(cb)
-                cb();
-        }))
-        .once("error", (err)=>{
-            if(err)
-                console.error("build error: " + err);
-        });
-    };
+        if(file.isBuffer())
+        {
+            file.pipe();
+        }
+        
+        //browserify construct
+        let bundle = browserify(opt).plugin("tsify", tsConfig);
 
-    //restart
-    if(options.watch)
-    {
-        bundle.on("update", ()=>{
-            build(()=>{
-                electron.restart();
+        //watchify
+        if (options.watch) {
+            bundle = bundle.plugin("watchify", {
+                delay: 100,
+                poll: false
             });
-        });
-    }
+        }
 
-    //start
-    return build(()=>{
-        electron.start();
+        //minify
+        if (options.minify)
+            bundle = bundle.plugin("uglifyify", { sourceMap: options.sourceMap });
+
+        //exclude fs and electron modules
+        bundle = bundle.exclude(excludeModules)
+            .on("log", (message) => {
+                console.log(message);
+            });
+
+        //build chain
+        let build = (cb) => {
+            bundle.bundle((err, src) => {
+                if (err)
+                    console.error(err);
+            })
+                .pipe(source("main.js"))
+                .pipe(buffer())
+                .pipe(gulp.dest('./dist/app').once("end", () => {
+                    console.log("build done.".green);
+                    if (cb)
+                        cb();
+                }))
+                .once("error", (err) => {
+                    if (err)
+                        console.error("build error: " + err);
+                });
+        };
+
+        //restart
+        if (options.watch) {
+            bundle.on("update", () => {
+                build(() => {
+                    electron.restart();
+                });
+            });
+        }
+
+        //start
+        return build(() => {
+            electron.start();
+        });
     });
 }
 

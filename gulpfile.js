@@ -1,5 +1,10 @@
 const dev = require("./src/index");
 const gulp = require("gulp");
+const bufferstream = require("bufferstreams")
+
+let ss = new bufferstream({ objectMode: true },function(){
+    console.log(arguments);
+});
 
 const options = {
     watch: true,
@@ -23,4 +28,3 @@ gulp.src("./src/renderer/index.html")
 gulp.src("./package.json")
     .pipe(gulp.dest("./dist"));
 //dev.buildHtml();
-
